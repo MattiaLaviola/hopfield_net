@@ -9,18 +9,17 @@ pub struct HopfiledNetsApp {
     central_panel : central_panel::CentralPanel,
     #[serde(skip)]
     side_panel : side_panel::SidePanel,
-    dummy_state: Vec<f64>,
+    
 }
 
 impl Default for HopfiledNetsApp {
    
     fn default() -> Self {
-        let side_panel = side_panel::SidePanel::new();
-        let dummy_state = vec![1.0; side_panel.get_state_size()];
+        let state_size = 9;
+    
         Self {
-            central_panel : central_panel::CentralPanel::new(),
-            side_panel : side_panel,
-            dummy_state: dummy_state,
+            central_panel : central_panel::CentralPanel::new( vec![-1.0; state_size*state_size]),
+            side_panel : side_panel::SidePanel::new(state_size),
         }
        
     }
@@ -60,8 +59,17 @@ impl eframe::App for HopfiledNetsApp {
         }
 
         if self.side_panel.has_state_size_changed() {
-            self.dummy_state = vec![1.0; self.side_panel.get_state_size()];
-            self.dummy_state[0] = -1.0;
+            let mut new_state = vec![-1.0; self.side_panel.get_state_size()];
+            new_state[0] = 1.0;
+            self.central_panel.set_net_state(new_state);
+        }
+
+        if self.side_panel.save_current_state() {
+            self.central_panel.save_current_state();
+        }
+
+        if self.side_panel.load_saved_state(){
+            self.central_panel.load_saved_state();
         }
 
 
@@ -84,12 +92,7 @@ impl eframe::App for HopfiledNetsApp {
         });
 
         egui::CentralPanel::default().show(ctx,|ui| {
-            //Test values
-            let vec_size = self.side_panel.get_state_size();
-            let mut vec = vec![1.0;vec_size];
-            vec[0] = -1.0;
-            //----------------
-            self.central_panel.generate_ui(ui, &self.dummy_state);
+            self.central_panel.generate_ui(ui);
         });
 
         if false {
