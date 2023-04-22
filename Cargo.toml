@@ -1,9 +1,9 @@
 [package]
-name = "eframe_template"
+name = "hopfield_nets"
 version = "0.1.0"
-authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
-edition = "2021"
-rust-version = "1.65"
+authors = ["Mattia Laviola <laviolamattia@gmail.com>"]
+edition = "2023"
+rust-version = "1.69"
 
 
 [dependencies]
