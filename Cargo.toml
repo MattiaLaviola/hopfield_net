@@ -2,7 +2,7 @@
 name = "hopfield_nets"
 version = "0.1.0"
 authors = ["Mattia Laviola <laviolamattia@gmail.com>"]
-edition = "2023"
+edition = "2021"
 rust-version = "1.69"
 
 

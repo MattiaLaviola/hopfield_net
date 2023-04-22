@@ -11,7 +11,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "hopfield nets",
         native_options,
-        Box::new(|cc| Box::new(hopfield_nets:TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(hopfield_nets::TemplateApp::new(cc))),
     )
 }
 
