@@ -11,7 +11,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "hopfield nets",
         native_options,
-        Box::new(|cc| Box::new(hopfield_nets::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc))),
     )
 }
 
@@ -28,9 +28,9 @@ fn main() {
 
     wasm_bindgen_futures::spawn_local(async {
         eframe::start_web(
-            "the_canvas_id", // hardcode it
+            "hopfield nets", // hardcode it
             web_options,
-            Box::new(|cc| Box::new(eframe_template::TemplateApp::new(cc))),
+            Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc))),
         )
         .await
         .expect("failed to start eframe");

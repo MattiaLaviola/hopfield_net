@@ -1,26 +1,33 @@
+mod central_panel;
+mod side_panel;
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
-    // Example stuff:
-    label: String,
+pub struct HopfiledNetsApp {
 
-    // this how you opt-out of serialization of a member
     #[serde(skip)]
-    value: f32,
+    central_panel : central_panel::CentralPanel,
+    #[serde(skip)]
+    side_panel : side_panel::SidePanel,
+    dummy_state: Vec<f64>,
 }
 
-impl Default for TemplateApp {
+impl Default for HopfiledNetsApp {
+   
     fn default() -> Self {
+        let side_panel = side_panel::SidePanel::new();
+        let dummy_state = vec![1.0; side_panel.get_state_size()];
         Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
+            central_panel : central_panel::CentralPanel::new(),
+            side_panel : side_panel,
+            dummy_state: dummy_state,
         }
+       
     }
 }
 
-impl TemplateApp {
+impl HopfiledNetsApp{
+
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -36,7 +43,7 @@ impl TemplateApp {
     }
 }
 
-impl eframe::App for TemplateApp {
+impl eframe::App for HopfiledNetsApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
@@ -45,13 +52,21 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, value } = self;
+        //let Self { label, node_size_continer, central_panel } = self;
 
-        // Examples of how to create different panels and windows.
-        // Pick whichever suits you.
-        // Tip: a good default choice is to just keep the `CentralPanel`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
+        //------------------------------Updating the UI components------------------------------
+        if self.side_panel.has_node_dim_changed() {
+            self.central_panel.set_node_size(self.side_panel.get_node_dim());
+        }
 
+        if self.side_panel.has_state_size_changed() {
+            self.dummy_state = vec![1.0; self.side_panel.get_state_size()];
+            self.dummy_state[0] = -1.0;
+        }
+
+
+
+        //----------------------------------Renderin the UI----------------------------------
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
@@ -65,43 +80,16 @@ impl eframe::App for TemplateApp {
         });
 
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Side Panel");
-
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(label);
-            });
-
-            ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                *value += 1.0;
-            }
-
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    ui.label("powered by ");
-                    ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-                    ui.label(" and ");
-                    ui.hyperlink_to(
-                        "eframe",
-                        "https://github.com/emilk/egui/tree/master/crates/eframe",
-                    );
-                    ui.label(".");
-                });
-            });
+            self.side_panel.generate_ui(ui);
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+        egui::CentralPanel::default().show(ctx,|ui| {
+            //Test values
+            let vec_size = self.side_panel.get_state_size();
+            let mut vec = vec![1.0;vec_size];
+            vec[0] = -1.0;
+            //----------------
+            self.central_panel.generate_ui(ui, &self.dummy_state);
         });
 
         if false {
@@ -112,5 +100,8 @@ impl eframe::App for TemplateApp {
                 ui.label("You would normally choose either panels OR windows.");
             });
         }
+
+
+      
     }
 }
