@@ -1,32 +1,39 @@
-mod central_panel;
-mod side_panel;
+pub mod central_panel;
+pub mod side_panel;
+pub mod utilities;
+mod networks;
+use networks::net_utils::Net as NetTrait;
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct HopfiledNetsApp {
+    #[serde(skip)]
+    central_panel: central_panel::CentralPanel,
+    #[serde(skip)]
+    side_panel: side_panel::SidePanel,
 
     #[serde(skip)]
-    central_panel : central_panel::CentralPanel,
-    #[serde(skip)]
-    side_panel : side_panel::SidePanel,
-    
+    current_net: Box<dyn NetTrait<f64>>,
 }
 
 impl Default for HopfiledNetsApp {
-   
     fn default() -> Self {
         let state_size = 9;
-    
+        let mut start_state = vec![-1.0; state_size*state_size];
+        let std_net_type = utilities::NetworkType::SquareDiscrete;
+        let net = Box::new(
+            networks::classic_network::ClassicNetworkDiscrete::new(state_size, Some(&start_state))
+        );
+
         Self {
-            central_panel : central_panel::CentralPanel::new( vec![-1.0; state_size*state_size]),
-            side_panel : side_panel::SidePanel::new(state_size),
+            central_panel: central_panel::CentralPanel::new(std_net_type, start_state),
+            side_panel: side_panel::SidePanel::new(std_net_type, state_size),
+            current_net: net,
         }
-       
     }
 }
 
-impl HopfiledNetsApp{
-
+impl HopfiledNetsApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -54,25 +61,32 @@ impl eframe::App for HopfiledNetsApp {
         //let Self { label, node_size_continer, central_panel } = self;
 
         //------------------------------Updating the UI components------------------------------
-        if self.side_panel.has_node_dim_changed() {
-            self.central_panel.set_node_size(self.side_panel.get_node_dim());
+        {
+            // Creatig this variables to make the code less verbose
+            let mut side_p = &mut self.side_panel;
+            let mut centr_p = &mut self.central_panel;
+            if side_p.has_node_dim_changed() {
+                centr_p.set_node_size(side_p.get_node_dim());
+            }
+
+            if side_p.has_state_size_changed() {
+                let mut new_state = vec![-1.0; side_p.get_state_size()];
+                new_state[0] = 1.0;
+                centr_p.set_net_state(new_state);
+            }
+
+            if side_p.save_current_state() {
+                centr_p.save_current_state();
+            }
+
+            if side_p.load_saved_state() {
+                centr_p.load_saved_state();
+            }
+
+            if side_p.has_selected_network_changed() {
+                centr_p.set_net_type(side_p.get_net_type());
+            }
         }
-
-        if self.side_panel.has_state_size_changed() {
-            let mut new_state = vec![-1.0; self.side_panel.get_state_size()];
-            new_state[0] = 1.0;
-            self.central_panel.set_net_state(new_state);
-        }
-
-        if self.side_panel.save_current_state() {
-            self.central_panel.save_current_state();
-        }
-
-        if self.side_panel.load_saved_state(){
-            self.central_panel.load_saved_state();
-        }
-
-
 
         //----------------------------------Renderin the UI----------------------------------
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
@@ -91,7 +105,7 @@ impl eframe::App for HopfiledNetsApp {
             self.side_panel.generate_ui(ui);
         });
 
-        egui::CentralPanel::default().show(ctx,|ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
             self.central_panel.generate_ui(ui);
         });
 
@@ -103,8 +117,5 @@ impl eframe::App for HopfiledNetsApp {
                 ui.label("You would normally choose either panels OR windows.");
             });
         }
-
-
-      
     }
 }

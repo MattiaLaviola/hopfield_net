@@ -1054,6 +1054,7 @@ dependencies = [
  "console_error_panic_hook",
  "eframe",
  "egui",
+ "rand",
  "serde",
  "strum",
  "strum_macros",

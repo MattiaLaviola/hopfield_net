@@ -1,3 +1,6 @@
+mod state_renderer;
+use crate::app::utilities;
+
 pub struct CentralPanel {
     button_size: egui::Vec2,
     net_state: Vec<f64>,
@@ -7,10 +10,11 @@ pub struct CentralPanel {
     state_sqrt: usize,
     singledrag: bool,
     mouse_down: bool,
+    network_type: utilities::NetworkType,
 }
 
 impl CentralPanel {
-    pub fn new(net_state: Vec<f64>) -> Self {
+    pub fn new(network_type: utilities::NetworkType, net_state: Vec<f64>) -> Self {
         let sqrt = (net_state.len() as f32).sqrt() as usize;
         Self {
             net_state_changed: false,
@@ -21,6 +25,7 @@ impl CentralPanel {
             state_sqrt: sqrt,
             saved_state: net_state,
             mouse_down: false,
+            network_type,
         }
     }
 
@@ -29,6 +34,7 @@ impl CentralPanel {
         ui.heading("Network state");
 
         let mut mouse_pos = egui::Pos2::new(0.0, 0.0);
+        // Here we extrat the mouse position,and if the mouse primary button is pressed form the context
         ui.ctx().input(|i| {
             if i.pointer.primary_pressed() {
                 self.mouse_down = true;
@@ -45,41 +51,25 @@ impl CentralPanel {
                 mouse_pos = i.pointer.hover_pos().unwrap();
             }
         });
-        egui::Grid
-            ::new("central_panel_grid_0")
-            .spacing(egui::vec2(3.0, 3.0))
-            .min_col_width(0.0)
-            .min_row_height(0.0)
-            .show(ui, |ui| {
-                for i in 0..self.net_state.len() {
-                    let mut button = egui::Button
-                        ::new(" ")
-                        .sense(egui::Sense::click())
-                        .min_size(self.button_size);
 
-                    if self.net_state[i] == -1.0 {
-                        button = button.fill(egui::Color32::from_rgb(0, 0, 0));
-                    } else {
-                        button = button.fill(egui::Color32::from_rgb(255, 255, 255));
-                    }
+        // More than a single net uses the same renderer, so we store the call in a closure to improve redability
+        let mut squareDescreteRenderer = || {
+            state_renderer::render_square_discrete(
+                ui,
+                &mut self.net_state,
+                &mut self.just_changed,
+                &mut self.net_state_changed,
+                self.button_size,
+                mouse_pos,
+                self.mouse_down
+            )
+        };
 
-                    let response = ui.add(button);
-                    // If the mouse is over the button, and the mouse is pressed, invert it's state
-
-                    if
-                        response.rect.contains(mouse_pos) &&
-                        self.mouse_down &&
-                        !self.just_changed[i]
-                    {
-                        self.net_state_changed = true;
-                        self.just_changed[i] = true;
-                        self.net_state[i] = -self.net_state[i];
-                    }
-                    if (i + 1) % self.state_sqrt == 0 {
-                        ui.end_row();
-                    }
-                }
-            });
+        match self.network_type {
+            utilities::NetworkType::StorkeySquareDiscrete => squareDescreteRenderer(),
+            utilities::NetworkType::SquareDiscrete => squareDescreteRenderer(),
+            _ => panic!("Renderer not available"),
+        }
 
         // egui::warn_if_debug_build(ui);
     }
@@ -104,6 +94,7 @@ impl CentralPanel {
     }
 
     pub fn set_net_state(&mut self, net_state: Vec<f64>) {
+        self.just_changed = vec![false; net_state.len()];
         self.state_sqrt = (net_state.len() as f32).sqrt() as usize;
         self.net_state = net_state.clone();
         self.saved_state = net_state;
@@ -116,5 +107,9 @@ impl CentralPanel {
 
     pub fn save_current_state(&mut self) {
         self.saved_state = self.net_state.clone();
+    }
+
+    pub fn set_net_type(&mut self, network_type: utilities::NetworkType) {
+        self.network_type = network_type;
     }
 }
