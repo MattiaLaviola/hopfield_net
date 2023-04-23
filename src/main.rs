@@ -11,7 +11,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "hopfield nets",
         native_options,
-        Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc))),
+        Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc)))
     )
 }
 
@@ -27,12 +27,12 @@ fn main() {
     let web_options = eframe::WebOptions::default();
 
     wasm_bindgen_futures::spawn_local(async {
-        eframe::start_web(
-            "hopfield nets", // hardcode it
-            web_options,
-            Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc))),
-        )
-        .await
-        .expect("failed to start eframe");
+        eframe
+            ::start_web(
+                "hopfield nets", // hardcode it
+                web_options,
+                Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc)))
+            ).await
+            .expect("failed to start eframe");
     });
 }

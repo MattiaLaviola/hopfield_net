@@ -120,8 +120,7 @@ impl SidePanel {
             self.state_size.changed = false;
             if response.clicked() {
                 let num = self.text_holder.parse::<usize>();
-                if num.is_ok() {
-                    let num = num.unwrap();
+                if let Ok(num) = num {
                     if num > 1 && num < 100 && num != self.state_size.value {
                         self.state_size.value = num;
                         // Since the state size changed, we set the changed flag to true

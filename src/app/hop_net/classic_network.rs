@@ -25,7 +25,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
     fn step(&mut self) -> Vec<f64> {
         //generat e random index from 0 to state.len()
         //let i = self.rng.gen_range(0..self.state.len());
-        if self.nodes_yet_to_update.len() <= 0 {
+        if self.nodes_yet_to_update.is_empty() {
             ClassicNetworkDiscrete::reset_nodes_to_update(
                 &mut self.nodes_yet_to_update,
                 self.state.len()
@@ -70,7 +70,7 @@ impl ClassicNetworkDiscrete {
         let state = if start_state.is_none() {
             Vec::with_capacity(size)
         } else {
-            let mut start_s = start_state.unwrap();
+            let start_s = start_state.unwrap();
             if start_s.len() != size {
                 panic!("Size and start size lenght are differnt");
             }
@@ -91,8 +91,8 @@ impl ClassicNetworkDiscrete {
     }
 
     pub fn init(&mut self, state: Option<&Vec<f64>>) {
-        if state.is_some() {
-            self.state = state.unwrap().clone();
+        if let Some(s) = state {
+            self.state = s.clone();
         } else {
             for i in 0..self.state.len() {
                 self.state[i] = if self.rng.gen_range(0..=1) == 1 { 1.0 } else { -1.0 };
@@ -171,7 +171,7 @@ impl ClassicNetworkDiscrete {
 impl std::fmt::Display for ClassicNetworkDiscrete {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         //chek to see if the state lenght is greater then 0
-        if self.state.len() == 0 {
+        if self.state.is_empty() {
             return write!(f, "state: the network has size 0");
         }
 
