@@ -119,13 +119,8 @@ impl ClassicNetworkDiscrete {
                     if i == j {
                         self.weights[i][j] = 0.0;
                     } else {
-                        self.weights[i][j] +=
-                            (1.0 / self.number_of_learned_states) *
-                                (state_to_learn[i] * state_to_learn[j]) +
-                            ((self.number_of_learned_states - 1.0) /
-                                self.number_of_learned_states) *
-                                self.weights[i][j];
-                        //self.weights[i][j] += state_to_learn[i] * state_to_learn[j] - self.weights[i][j];
+                        // self.weights[i][j] +=(1.0 / self.number_of_learned_states) *(state_to_learn[i] * state_to_learn[j]) + ((self.number_of_learned_states - 1.0) /self.number_of_learned_states) self.weights[i][j];
+                        self.weights[i][j] += state_to_learn[i] * state_to_learn[j];
                     }
                 }
             }

@@ -61,7 +61,7 @@ impl Default for HopfiledNetsApp {
 
                 // If there are no messagges, mess will be NetworkCommand::None, so
                 // we can get Option::None only if the channel has been close, and in that case we return.
-                if !mess.is_some() {
+                if mess.is_none() {
                     println!("Net thread closed");
                     return;
                 }
@@ -131,8 +131,8 @@ impl eframe::App for HopfiledNetsApp {
             if self.net_stepping {
                 // If the network is generating new states faster then we are cousuming, we drop the extra states.
                 let mut mess = self.recieve_from_net.try_iter().last();
-                if mess.is_some() {
-                    centr_p.set_net_state(mess.unwrap());
+                if let Some(arrived_mess) = mess {
+                    centr_p.set_net_state(arrived_mess);
                 }
             }
 
@@ -140,8 +140,12 @@ impl eframe::App for HopfiledNetsApp {
                 self.net_stepping = false;
                 let mut new_state = vec![-1.0; side_p.get_state_size()];
                 self.saved_state = new_state.clone();
-                self.send_to_net.send(NetworkCommand::Stop);
-                self.send_to_net.send(NetworkCommand::SetState(new_state.clone()));
+                if self.send_to_net.send(NetworkCommand::Stop).is_err() {
+                    println!("Error sending stop command to net");
+                }
+                if self.send_to_net.send(NetworkCommand::SetState(new_state.clone())).is_err() {
+                    println!("Error sending set state command to net");
+                }
                 centr_p.set_net_state(new_state);
             }
 
@@ -152,8 +156,16 @@ impl eframe::App for HopfiledNetsApp {
 
             if side_p.load_saved_state() {
                 self.net_stepping = false;
-                self.send_to_net.send(NetworkCommand::Stop);
-                self.send_to_net.send(NetworkCommand::SetState(self.saved_state.clone()));
+                if self.send_to_net.send(NetworkCommand::Stop).is_err() {
+                    println!("Error sending stop command to net");
+                }
+                if
+                    self.send_to_net
+                        .send(NetworkCommand::SetState(self.saved_state.clone()))
+                        .is_err()
+                {
+                    println!("Error sending set state command to net");
+                }
                 centr_p.set_net_state(self.saved_state.clone());
             }
 
@@ -170,26 +182,44 @@ impl eframe::App for HopfiledNetsApp {
             // The right way to do this is to save just the indices of the nodes that have changed, and then update only them
             // I'll rework this part for sure
             if centr_p.has_net_state_changed() {
-                self.send_to_net.send(NetworkCommand::SetState(centr_p.get_net_state()));
+                if
+                    self.send_to_net
+                        .send(NetworkCommand::SetState(centr_p.get_net_state()))
+                        .is_err()
+                {
+                    panic!("The network is not running");
+                }
             }
 
             if side_p.stop_stepping_pressed() {
                 self.net_stepping = false;
-                self.send_to_net.send(NetworkCommand::Stop);
+                if self.send_to_net.send(NetworkCommand::Stop).is_err() {
+                    panic!("The network is not running");
+                }
             }
 
             if side_p.start_stepping_pressed() {
                 self.net_stepping = true;
-                self.send_to_net.send(NetworkCommand::Go);
+                if self.send_to_net.send(NetworkCommand::Go).is_err() {
+                    panic!("The network is not running");
+                }
             }
 
             if side_p.has_stepping_speed_changed() {
-                self.send_to_net.send(NetworkCommand::SetSpeed(side_p.get_stepping_speed()));
+                if
+                    self.send_to_net
+                        .send(NetworkCommand::SetSpeed(side_p.get_stepping_speed()))
+                        .is_err()
+                {
+                    panic!("The network is not running");
+                }
             }
 
             // We learn what the user is seeing
             if side_p.learn_current_state() {
-                self.send_to_net.send(NetworkCommand::Learn(centr_p.get_net_state()));
+                if self.send_to_net.send(NetworkCommand::Learn(centr_p.get_net_state())).is_err() {
+                    panic!("The network is not running");
+                }
             }
         }
 

@@ -2,6 +2,8 @@
 // there is probably a better way to do this, but at least for the moment this is good enough
 // the problems probably originates from me oranizing the fils in a java-like fashion
 pub mod classic_network;
+use std::fmt::Formatter;
+use std::fmt::Display;
 use strum_macros::EnumIter;
 
 pub trait Net<T> {
@@ -22,11 +24,11 @@ pub enum NetworkType {
     SquareDiscrete,
 }
 
-impl NetworkType {
-    pub fn to_string(&self) -> String {
+impl Display for NetworkType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            NetworkType::StorkeySquareDiscrete => "StorkeySquareDiscrete".to_string(),
-            NetworkType::SquareDiscrete => "HebbianSquareDiscrete".to_string(),
+            NetworkType::StorkeySquareDiscrete => write!(f, "StorkeySquareDiscrete"),
+            NetworkType::SquareDiscrete => write!(f, "HebbianSquareDiscrete"),
             _ => panic!("Unknown network type"),
         }
     }
