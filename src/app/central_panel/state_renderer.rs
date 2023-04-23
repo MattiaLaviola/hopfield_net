@@ -12,7 +12,8 @@ pub fn render_square_discrete<'a, T: PartialOrd + std::ops::Neg<Output = T> + Fr
     state_changed_falg: &mut bool,
     node_size: egui::Vec2,
     mouse_pos: egui::Pos2,
-    mouse_down: bool
+    mouse_down: bool,
+    nodes_being_edited: &mut bool
 ) {
     if state.len() == 0 {
         panic!("Cannot render empty state");
@@ -31,6 +32,8 @@ pub fn render_square_discrete<'a, T: PartialOrd + std::ops::Neg<Output = T> + Fr
     // Confronting with the 0, we can cover both the case where the off-node is rapresented with 0 and the one where it is -1
     // To be abele to confront with T, we need to convert into it
     let zero = T::from(0);
+
+    *state_changed_falg = false;
 
     // Main node where the rendering happens
     egui::Grid
@@ -57,6 +60,7 @@ pub fn render_square_discrete<'a, T: PartialOrd + std::ops::Neg<Output = T> + Fr
                     *state_changed_falg = true;
                     state_change_mask[i] = true;
                     state[i] = -state[i];
+                    *nodes_being_edited = true;
                 }
 
                 if (i + 1) % state_sqrt == 0 {

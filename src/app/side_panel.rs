@@ -1,21 +1,23 @@
-use crate::app::utilities;
 use strum::IntoEnumIterator;
+use crate::app::hop_net;
+use crate::app::utilities;
 
 pub struct SidePanel {
     reset: bool,
     save_current_state: bool,
     node_dim: utilities::EditableValue<f32>,
-    network: utilities::EditableValue<utilities::NetworkType>,
+    network: utilities::EditableValue<hop_net::NetworkType>,
     state_size: utilities::EditableValue<usize>,
     text_holder: String,
     learn_current_state: bool,
     forget_all: bool,
-    remember: bool,
-    remember_speed: utilities::EditableValue<f32>,
+    start_stepping_pressed: bool,
+    stop_stepping_pressed: bool,
+    remember_speed: utilities::EditableValue<u64>,
 }
 
 impl SidePanel {
-    pub fn new(network_type: utilities::NetworkType, state_size: usize) -> Self {
+    pub fn new(network_type: hop_net::NetworkType, state_size: usize) -> Self {
         Self {
             node_dim: utilities::EditableValue::new(20.0),
             reset: false,
@@ -25,8 +27,9 @@ impl SidePanel {
             save_current_state: false,
             learn_current_state: false,
             forget_all: false,
-            remember: false,
-            remember_speed: utilities::EditableValue::new(10.0),
+            start_stepping_pressed: false,
+            stop_stepping_pressed: false,
+            remember_speed: utilities::EditableValue::new(10),
         }
     }
 
@@ -54,7 +57,7 @@ impl SidePanel {
                 ::from_label("")
                 .selected_text(self.network.value.to_string())
                 .show_ui(ui, |ui| {
-                    for network_type in utilities::NetworkType::iter() {
+                    for network_type in hop_net::NetworkType::iter() {
                         ui.selectable_value(
                             &mut self.network.value,
                             network_type,
@@ -80,16 +83,12 @@ impl SidePanel {
         ui.label("Memory recovery");
         ui.horizontal(|ui| {
             let response = ui.button("Start");
-            if response.clicked() {
-                self.remember = true;
-            }
+            self.start_stepping_pressed = response.clicked();
             let response = ui.button("Stop");
-            if response.clicked() {
-                self.remember = false;
-            }
+            self.stop_stepping_pressed = response.clicked();
         });
         let response = ui.add(
-            egui::Slider::new(&mut self.remember_speed.value, 1.0..=600.0).text("step/sec")
+            egui::Slider::new(&mut self.remember_speed.value, 1..=600).text("step/sec")
         );
         self.remember_speed.changed = response.dragged();
         // End of learning section
@@ -112,11 +111,10 @@ impl SidePanel {
         ui.horizontal(|ui| {
             let text_edit_singleline = egui::TextEdit
                 ::singleline(&mut self.text_holder)
-                .desired_width(0.0)
+                .desired_width(50.0)
                 .min_size((10.0, 0.0).into());
 
-            ui.text_edit_singleline(&mut self.text_holder);
-
+            ui.add(text_edit_singleline);
             let response = ui.button("Apply");
             // The state_size.changed is restored to false every frame, if something had to change, we assume it already did
             self.state_size.changed = false;
@@ -139,16 +137,20 @@ impl SidePanel {
 
     // Getters
 
-    pub fn get_remember_speed(&self) -> f32 {
+    pub fn get_stepping_speed(&self) -> u64 {
         self.remember_speed.value
     }
 
-    pub fn is_remembering_speed_changed(&self) -> bool {
+    pub fn has_stepping_speed_changed(&self) -> bool {
         self.remember_speed.changed
     }
 
-    pub fn is_remembering(&self) -> bool {
-        self.remember
+    pub fn start_stepping_pressed(&self) -> bool {
+        self.start_stepping_pressed
+    }
+
+    pub fn stop_stepping_pressed(&self) -> bool {
+        self.stop_stepping_pressed
     }
 
     pub fn learn_current_state(&self) -> bool {
@@ -167,7 +169,7 @@ impl SidePanel {
         self.node_dim.changed
     }
 
-    pub fn get_net_type(&self) -> utilities::NetworkType {
+    pub fn get_net_type(&self) -> hop_net::NetworkType {
         self.network.value
     }
 

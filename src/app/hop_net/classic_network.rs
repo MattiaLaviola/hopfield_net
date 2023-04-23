@@ -1,24 +1,24 @@
 use rand::Rng;
 use rand::prelude::SliceRandom;
 
-use super::net_utils;
+use crate::app::hop_net;
 pub struct ClassicNetworkDiscrete {
     pub state: Vec<f64>,
     pub rng: rand::rngs::ThreadRng,
     weights: Vec<Vec<f64>>,
-    numberOfLearnedStates: f64,
+    number_of_learned_states: f64,
     steps: usize,
     nodes_yet_to_update: Vec<usize>,
 }
 
 // The network will mostly be interacted with trough this traits
-impl net_utils::Net<f64> for ClassicNetworkDiscrete {
+impl hop_net::Net<f64> for ClassicNetworkDiscrete {
     fn get_state(&self) -> Vec<f64> {
         return self.state.clone();
     }
 
-    fn learn(&mut self, state: &mut Vec<f64>) {
-        self.numberOfLearnedStates += 1.0;
+    fn learn(&mut self, state: &Vec<f64>) {
+        self.number_of_learned_states += 1.0;
         self.hebbian_learning(&state);
     }
 
@@ -37,7 +37,16 @@ impl net_utils::Net<f64> for ClassicNetworkDiscrete {
         self.state.clone()
     }
 
-    fn set_state(&mut self, state: &mut Vec<f64>) {
+    fn set_state(&mut self, state: &Vec<f64>) {
+        if state.len() < 4 {
+            panic!("State is too short");
+        }
+
+        if self.state.len() != state.len() {
+            self.number_of_learned_states = 0.0;
+            self.weights = vec![vec![0.4; state.len()]; state.len()];
+            self.steps = 0;
+        }
         self.state = state.clone();
 
         // The starting state has just been set, so we are 0 steps away from it
@@ -52,16 +61,20 @@ impl net_utils::Net<f64> for ClassicNetworkDiscrete {
 
     fn reset_weights(&mut self) {
         self.weights = vec![vec![0.4; self.state.len()]; self.state.len()];
-        self.numberOfLearnedStates = 0.0;
+        self.number_of_learned_states = 0.0;
     }
 }
 
 impl ClassicNetworkDiscrete {
     pub fn new(size: usize, start_state: Option<&Vec<f64>>) -> ClassicNetworkDiscrete {
-        let mut state = if !start_state.is_some() {
+        let state = if !start_state.is_some() {
             Vec::with_capacity(size)
         } else {
-            start_state.unwrap().clone()
+            let mut start_s = start_state.unwrap();
+            if start_s.len() != size {
+                panic!("Size and start size lenght are differnt");
+            }
+            start_s.clone()
         };
 
         let mut nodes_to_update = Vec::with_capacity(size);
@@ -72,7 +85,7 @@ impl ClassicNetworkDiscrete {
             rng: rand::thread_rng(),
             weights: vec![vec![0.4; size]; size],
             steps: 0,
-            numberOfLearnedStates: 0.0,
+            number_of_learned_states: 0.0,
             nodes_yet_to_update: nodes_to_update,
         }
     }
@@ -90,7 +103,7 @@ impl ClassicNetworkDiscrete {
     }
 
     fn hebbian_learning(&mut self, state_to_learn: &Vec<f64>) {
-        if self.numberOfLearnedStates == 1.0 {
+        if self.number_of_learned_states == 1.0 {
             for i in 0..self.weights.len() {
                 for j in 0..self.weights[i].len() {
                     if i == j {
@@ -107,9 +120,10 @@ impl ClassicNetworkDiscrete {
                         self.weights[i][j] = 0.0;
                     } else {
                         self.weights[i][j] +=
-                            (1.0 / self.numberOfLearnedStates) *
+                            (1.0 / self.number_of_learned_states) *
                                 (state_to_learn[i] * state_to_learn[j]) +
-                            ((self.numberOfLearnedStates - 1.0) / self.numberOfLearnedStates) *
+                            ((self.number_of_learned_states - 1.0) /
+                                self.number_of_learned_states) *
                                 self.weights[i][j];
                         //self.weights[i][j] += state_to_learn[i] * state_to_learn[j] - self.weights[i][j];
                     }
