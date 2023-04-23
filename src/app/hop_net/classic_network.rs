@@ -1,5 +1,5 @@
-use rand::Rng;
 use rand::prelude::SliceRandom;
+use rand::Rng;
 
 use crate::app::hop_net;
 pub struct ClassicNetworkDiscrete {
@@ -28,7 +28,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
         if self.nodes_yet_to_update.is_empty() {
             ClassicNetworkDiscrete::reset_nodes_to_update(
                 &mut self.nodes_yet_to_update,
-                self.state.len()
+                self.state.len(),
             );
         }
         let i = self.nodes_yet_to_update.pop().unwrap();
@@ -55,7 +55,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
         // We make sure that all nodes are marked as "to update"
         ClassicNetworkDiscrete::reset_nodes_to_update(
             &mut self.nodes_yet_to_update,
-            self.state.len()
+            self.state.len(),
         );
     }
 
@@ -95,7 +95,11 @@ impl ClassicNetworkDiscrete {
             self.state = s.clone();
         } else {
             for i in 0..self.state.len() {
-                self.state[i] = if self.rng.gen_range(0..=1) == 1 { 1.0 } else { -1.0 };
+                self.state[i] = if self.rng.gen_range(0..=1) == 1 {
+                    1.0
+                } else {
+                    -1.0
+                };
             }
         }
         // self.setWeightsToRandom();

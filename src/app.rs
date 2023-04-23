@@ -1,16 +1,16 @@
 // pub mod of all the modules to make the compiler happy
 pub mod central_panel;
-pub mod side_panel;
 pub mod hop_net;
-pub mod utilities;
+pub mod side_panel;
 pub mod thread_utils;
+pub mod utilities;
 
 // Actually used stuff
-use hop_net::Net as NetTrait;
 use hop_net::classic_network::ClassicNetworkDiscrete;
+use hop_net::Net as NetTrait;
 use hop_net::NetworkCommand;
-use std::thread;
 use std::sync::mpsc;
+use std::thread;
 use std::time::Duration;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -41,7 +41,7 @@ impl Default for HopfiledNetsApp {
         let (net_send, main_recieve) = mpsc::channel::<Vec<f64>>();
 
         let state_size = 9;
-        let start_state = vec![-1.0; state_size*state_size];
+        let start_state = vec![-1.0; state_size * state_size];
         let std_net_type = hop_net::NetworkType::SquareDiscrete;
 
         let side_panel = side_panel::SidePanel::new(std_net_type, state_size);
@@ -50,10 +50,8 @@ impl Default for HopfiledNetsApp {
         let start_state_clone = start_state.clone();
         thread::spawn(move || {
             let mut sleep_time = Duration::from_millis((1000.0 / std_stepping_speed) as u64);
-            let mut net = ClassicNetworkDiscrete::new(
-                start_state_clone.len(),
-                Some(&start_state_clone)
-            );
+            let mut net =
+                ClassicNetworkDiscrete::new(start_state_clone.len(), Some(&start_state_clone));
             let mut is_stepping = false;
             println!("Net thread up");
             loop {
@@ -144,7 +142,11 @@ impl eframe::App for HopfiledNetsApp {
                 if self.send_to_net.send(NetworkCommand::Stop).is_err() {
                     println!("Error sending stop command to net");
                 }
-                if self.send_to_net.send(NetworkCommand::SetState(new_state.clone())).is_err() {
+                if self
+                    .send_to_net
+                    .send(NetworkCommand::SetState(new_state.clone()))
+                    .is_err()
+                {
                     println!("Error sending set state command to net");
                 }
                 centr_p.set_net_state(new_state);
@@ -160,10 +162,10 @@ impl eframe::App for HopfiledNetsApp {
                 if self.send_to_net.send(NetworkCommand::Stop).is_err() {
                     println!("Error sending stop command to net");
                 }
-                if
-                    self.send_to_net
-                        .send(NetworkCommand::SetState(self.saved_state.clone()))
-                        .is_err()
+                if self
+                    .send_to_net
+                    .send(NetworkCommand::SetState(self.saved_state.clone()))
+                    .is_err()
                 {
                     println!("Error sending set state command to net");
                 }
@@ -182,9 +184,11 @@ impl eframe::App for HopfiledNetsApp {
             // If the user editd the network state through the gui, we update the network.
             // The right way to do this is to save just the indices of the nodes that have changed, and then update only them
             // I'll rework this part for sure
-            if
-                centr_p.has_net_state_changed() &&
-                self.send_to_net.send(NetworkCommand::SetState(centr_p.get_net_state())).is_err()
+            if centr_p.has_net_state_changed()
+                && self
+                    .send_to_net
+                    .send(NetworkCommand::SetState(centr_p.get_net_state()))
+                    .is_err()
             {
                 panic!("The network is not running");
             }
@@ -203,9 +207,9 @@ impl eframe::App for HopfiledNetsApp {
                 }
             }
 
-            if
-                side_p.has_stepping_speed_changed() &&
-                self.send_to_net
+            if side_p.has_stepping_speed_changed()
+                && self
+                    .send_to_net
                     .send(NetworkCommand::SetSpeed(side_p.get_stepping_speed()))
                     .is_err()
             {
@@ -213,9 +217,11 @@ impl eframe::App for HopfiledNetsApp {
             }
 
             // We learn what the user is seeing
-            if
-                side_p.learn_current_state() &&
-                self.send_to_net.send(NetworkCommand::Learn(centr_p.get_net_state())).is_err()
+            if side_p.learn_current_state()
+                && self
+                    .send_to_net
+                    .send(NetworkCommand::Learn(centr_p.get_net_state()))
+                    .is_err()
             {
                 panic!("The network is not running");
             }

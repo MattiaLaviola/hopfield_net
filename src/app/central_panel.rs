@@ -48,7 +48,7 @@ impl CentralPanel {
                 self.button_size,
                 mouse_pos,
                 self.mouse_down,
-                &mut self.nodes_being_edited
+                &mut self.nodes_being_edited,
             )
         };
 

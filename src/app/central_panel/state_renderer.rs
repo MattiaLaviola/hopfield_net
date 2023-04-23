@@ -13,7 +13,7 @@ pub fn render_square_discrete<T: PartialOrd + std::ops::Neg<Output = T> + From<u
     node_size: egui::Vec2,
     mouse_pos: egui::Pos2,
     mouse_down: bool,
-    nodes_being_edited: &mut bool
+    nodes_being_edited: &mut bool,
 ) {
     if state.is_empty() {
         panic!("Cannot render empty state");
@@ -36,15 +36,13 @@ pub fn render_square_discrete<T: PartialOrd + std::ops::Neg<Output = T> + From<u
     *state_changed_falg = false;
 
     // Main node where the rendering happens
-    egui::Grid
-        ::new("central_panel_grid_0")
+    egui::Grid::new("central_panel_grid_0")
         .spacing(egui::vec2(3.0, 3.0))
         .min_col_width(0.0)
         .min_row_height(0.0)
         .show(ui, |ui| {
             for i in 0..state.len() {
-                let mut button = egui::Button
-                    ::new(" ")
+                let mut button = egui::Button::new(" ")
                     .sense(egui::Sense::click())
                     .min_size(node_size);
 

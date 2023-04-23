@@ -1,6 +1,6 @@
-use strum::IntoEnumIterator;
 use crate::app::hop_net;
 use crate::app::utilities;
+use strum::IntoEnumIterator;
 
 pub struct SidePanel {
     reset: bool,
@@ -53,15 +53,14 @@ impl SidePanel {
         // Start of network type selection
         ui.label("Select network type:");
         ui.horizontal(|ui| {
-            egui::ComboBox
-                ::from_label("")
+            egui::ComboBox::from_label("")
                 .selected_text(self.network.value.to_string())
                 .show_ui(ui, |ui| {
                     for network_type in hop_net::NetworkType::iter() {
                         ui.selectable_value(
                             &mut self.network.value,
                             network_type,
-                            network_type.to_string()
+                            network_type.to_string(),
                         );
                     }
                 });
@@ -87,9 +86,8 @@ impl SidePanel {
             let response = ui.button("Stop");
             self.stop_stepping_pressed = response.clicked();
         });
-        let response = ui.add(
-            egui::Slider::new(&mut self.remember_speed.value, 1..=600).text("step/sec")
-        );
+        let response =
+            ui.add(egui::Slider::new(&mut self.remember_speed.value, 1..=600).text("step/sec"));
         self.remember_speed.changed = response.dragged();
         // End of learning section
 
@@ -97,9 +95,8 @@ impl SidePanel {
 
         // Start of node size selection
         ui.label("Node size:");
-        let response = ui.add(
-            egui::Slider::new(&mut self.node_dim.value, 1.0..=100.0).text("value")
-        );
+        let response =
+            ui.add(egui::Slider::new(&mut self.node_dim.value, 1.0..=100.0).text("value"));
         self.node_dim.changed = response.dragged();
 
         // End of node size selection
@@ -109,8 +106,7 @@ impl SidePanel {
         // Start of state size selection
         ui.label("State size:");
         ui.horizontal(|ui| {
-            let text_edit_singleline = egui::TextEdit
-                ::singleline(&mut self.text_holder)
+            let text_edit_singleline = egui::TextEdit::singleline(&mut self.text_holder)
                 .desired_width(50.0)
                 .min_size((10.0, 0.0).into());
 
