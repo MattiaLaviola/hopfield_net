@@ -9,11 +9,11 @@ use strum_macros::EnumIter;
 pub trait Net<T> {
     fn get_state(&self) -> Vec<T>;
 
-    fn learn(&mut self, state: &Vec<T>);
+    fn learn(&mut self, state: &[T]);
 
     fn step(&mut self) -> Vec<T>;
 
-    fn set_state(&mut self, state: &Vec<T>);
+    fn set_state(&mut self, state: &[T]);
 
     fn reset_weights(&mut self);
 }

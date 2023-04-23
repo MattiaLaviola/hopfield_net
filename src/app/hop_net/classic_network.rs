@@ -14,12 +14,12 @@ pub struct ClassicNetworkDiscrete {
 // The network will mostly be interacted with trough this traits
 impl hop_net::Net<f64> for ClassicNetworkDiscrete {
     fn get_state(&self) -> Vec<f64> {
-        return self.state.clone();
+        self.state.clone()
     }
 
-    fn learn(&mut self, state: &Vec<f64>) {
+    fn learn(&mut self, state: &[f64]) {
         self.number_of_learned_states += 1.0;
-        self.hebbian_learning(&state);
+        self.hebbian_learning(state);
     }
 
     fn step(&mut self) -> Vec<f64> {
@@ -37,7 +37,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
         self.state.clone()
     }
 
-    fn set_state(&mut self, state: &Vec<f64>) {
+    fn set_state(&mut self, state: &[f64]) {
         if state.len() < 4 {
             panic!("State is too short");
         }
@@ -47,7 +47,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
             self.weights = vec![vec![0.4; state.len()]; state.len()];
             self.steps = 0;
         }
-        self.state = state.clone();
+        self.state = state.to_vec();
 
         // The starting state has just been set, so we are 0 steps away from it
         self.steps = 0;
@@ -67,7 +67,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
 
 impl ClassicNetworkDiscrete {
     pub fn new(size: usize, start_state: Option<&Vec<f64>>) -> ClassicNetworkDiscrete {
-        let state = if !start_state.is_some() {
+        let state = if start_state.is_none() {
             Vec::with_capacity(size)
         } else {
             let mut start_s = start_state.unwrap();
@@ -81,7 +81,7 @@ impl ClassicNetworkDiscrete {
         ClassicNetworkDiscrete::reset_nodes_to_update(&mut nodes_to_update, size);
 
         ClassicNetworkDiscrete {
-            state: state,
+            state,
             rng: rand::thread_rng(),
             weights: vec![vec![0.4; size]; size],
             steps: 0,
@@ -102,7 +102,7 @@ impl ClassicNetworkDiscrete {
         self.steps = 0;
     }
 
-    fn hebbian_learning(&mut self, state_to_learn: &Vec<f64>) {
+    fn hebbian_learning(&mut self, state_to_learn: &[f64]) {
         if self.number_of_learned_states == 1.0 {
             for i in 0..self.weights.len() {
                 for j in 0..self.weights[i].len() {
@@ -149,7 +149,7 @@ impl ClassicNetworkDiscrete {
     // It is higly possible that this funcitin will be moved to net_utils
     fn reset_nodes_to_update(container: &mut Vec<usize>, lenght: usize) {
         // If the containere isn't already empty, we empty it
-        while container.len() != 0 {
+        while !container.is_empty() {
             container.pop();
         }
 
@@ -171,7 +171,7 @@ impl ClassicNetworkDiscrete {
 impl std::fmt::Display for ClassicNetworkDiscrete {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         //chek to see if the state lenght is greater then 0
-        if self.state.len() <= 0 {
+        if self.state.len() == 0 {
             return write!(f, "state: the network has size 0");
         }
 
@@ -185,19 +185,19 @@ impl std::fmt::Display for ClassicNetworkDiscrete {
             for i in 0..sqrt {
                 for j in 0..sqrt {
                     if self.state[i * sqrt + j] == 1.0 {
-                        state.push_str("◼");
+                        state.push('◼');
                     } else {
-                        state.push_str("◻");
+                        state.push('◻');
                     }
                 }
-                state.push_str("\n");
+                state.push('\n');
             }
         } else {
             for i in 0..self.state.len() {
                 if self.state[i] == 1.0 {
-                    state.push_str("◼");
+                    state.push('◼');
                 } else {
-                    state.push_str("◻");
+                    state.push('◻');
                 }
             }
         }

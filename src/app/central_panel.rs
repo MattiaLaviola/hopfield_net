@@ -1,5 +1,5 @@
 mod state_renderer;
-use crate::app::utilities;
+
 use crate::app::hop_net;
 
 pub struct CentralPanel {
@@ -30,13 +30,13 @@ impl CentralPanel {
         }
     }
 
-    pub fn generate_ui<'a>(&mut self, ui: &'a mut egui::Ui) {
+    pub fn generate_ui(&mut self, ui: &mut egui::Ui) {
         // The central panel the region left after adding TopPanel's and SidePanel's
         ui.heading("Network state");
 
         // Here we extrat the mouse position,and if the mouse primary button is pressed form the context
         // when the mouse is released we also reset the just_cahnged mask to all false
-        let mut mouse_pos = self.handle_mouse(ui);
+        let mouse_pos = self.handle_mouse(ui);
 
         // More than a single net uses the same renderer, so we store the call in a closure to improve redability
         let mut square_descrete_render = || {

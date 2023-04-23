@@ -33,7 +33,7 @@ impl SidePanel {
         }
     }
 
-    pub fn generate_ui<'a>(&mut self, ui: &'a mut egui::Ui) {
+    pub fn generate_ui(&mut self, ui: &mut egui::Ui) {
         //let Self { node_dim,network, ..} = self;
 
         let std_space = 15.0;
