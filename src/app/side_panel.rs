@@ -83,9 +83,9 @@ impl SidePanel {
         });
         ui.label("Memory recovery");
         ui.horizontal(|ui| {
-            let response = ui.selectable_label(self.is_stepping, "Start");
+            let response = ui.selectable_label(!self.is_stepping, "Start");
             self.start_stepping_pressed = response.clicked();
-            let response = ui.selectable_label(!self.is_stepping, "Stop");
+            let response = ui.selectable_label(self.is_stepping, "Stop");
             self.stop_stepping_pressed = response.clicked();
 
             if self.start_stepping_pressed {

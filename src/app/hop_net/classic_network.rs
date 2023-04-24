@@ -69,7 +69,8 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
         self.number_of_learned_states = 0.0;
     }
 }
-
+// In this case it gives a false allarm, the suggestion is not applicable
+#[allow(clippy::unnecessary_unwrap)]
 impl ClassicNetworkDiscrete {
     pub fn new(size: usize, start_state: Option<&Vec<f64>>) -> ClassicNetworkDiscrete {
         let state = if start_state.is_none() {
@@ -148,7 +149,7 @@ impl ClassicNetworkDiscrete {
             self.state[i] = new_val;
             return true;
         }
-        return false;
+        false
     }
 
     // May be cool to we wich state are memorized in the random matrix
@@ -180,11 +181,6 @@ impl ClassicNetworkDiscrete {
 
 impl std::fmt::Display for ClassicNetworkDiscrete {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        //chek to see if the state lenght is greater then 0
-        if self.state.is_empty() {
-            return write!(f, "state: the network has size 0");
-        }
-
         let mut state = String::new();
 
         // Extract the closest integer square root

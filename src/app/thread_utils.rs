@@ -27,7 +27,7 @@ pub fn get_message(
 }
 
 pub fn handle_message(
-    net: &mut dyn Net<f64>,
+    net: &mut Box<dyn Net<f64>>,
     command: NetworkCommand,
     is_stepping: &mut bool,
     old_step_num: &mut usize,

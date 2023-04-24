@@ -6,13 +6,9 @@ pub mod thread_utils;
 pub mod utilities;
 
 // Actually used stuff
-use hop_net::classic_network::ClassicNetworkDiscrete;
-use hop_net::Net as NetTrait;
 use hop_net::NetworkCommand;
 use hop_net::NetworkResponse;
 use std::sync::mpsc;
-use std::thread;
-use std::time::Duration;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -34,6 +30,9 @@ pub struct HopfiledNetsApp {
 
     #[serde(skip)]
     saved_state: Vec<f64>,
+
+    #[serde(skip)]
+    n: u64,
 }
 
 impl Default for HopfiledNetsApp {
@@ -46,76 +45,14 @@ impl Default for HopfiledNetsApp {
         let std_net_type = hop_net::NetworkType::SquareDiscrete;
 
         let side_panel = side_panel::SidePanel::new(std_net_type, state_size);
-        let std_stepping_speed = side_panel.get_stepping_speed() as f32;
 
-        let start_state_clone = start_state.clone();
-        thread::spawn(move || {
-            println!("Net thread up");
-
-            let std_err_fn = || {
-                panic!("Net thread closed unexpectedly");
-            };
-
-            let mut sleep_time = Duration::from_millis((1000.0 / std_stepping_speed) as u64);
-            let mut is_stepping = false;
-            let mut old_step_num = 0;
-            let mut net =
-                ClassicNetworkDiscrete::new(start_state_clone.len(), Some(&start_state_clone));
-            let max_steps_without_change = 2 * net.get_state().len();
-
-            // -----------------------------Main loop-----------------------------
-            loop {
-                let mess = thread_utils::get_message(&net_recieve, is_stepping);
-
-                // get_message returns None only if the channel is closed, which would meann that the main thread stopped
-                if mess.is_none() {
-                    println!("Net thread closed");
-                    return;
-                }
-
-                let mess = mess.unwrap();
-                if mess != NetworkCommand::None {
-                    thread_utils::handle_message(
-                        &mut net,
-                        mess,
-                        &mut is_stepping,
-                        &mut old_step_num,
-                        &mut sleep_time,
-                    );
-                }
-
-                if is_stepping {
-                    // The net computes the next state, and than returns a copy to be sent to the main thread, it also computes
-                    // if the new state is equal to the old one.
-                    let (state_changed, new_state) = net.step();
-
-                    if state_changed {
-                        old_step_num = net.get_steps();
-                        if let Err(_) = net_send.send(NetworkResponse::NewState(new_state)) {
-                            std_err_fn();
-                        }
-                    } else {
-                        // We assume that is possible for the state to not change after a single step.
-                        // But if after x steps it still has not changed, we assue that we have reached an equilibrium state.
-                        let diff = net.get_steps() - old_step_num;
-                        println!("Diff: {}", diff);
-                        if diff >= max_steps_without_change {
-                            println!("Stoppped stepping");
-                            is_stepping = false;
-                            if let Err(_) = net_send.send(NetworkResponse::Stopped) {
-                                std_err_fn();
-                            }
-                        } else {
-                            if let Err(_) = net_send.send(NetworkResponse::None) {
-                                std_err_fn();
-                            }
-                        }
-                    }
-
-                    thread::sleep(sleep_time);
-                }
-            }
-        });
+        hop_net::start_net_thread(
+            hop_net::NetworkType::SquareDiscrete,
+            start_state.clone(),
+            state_size,
+            net_send,
+            net_recieve,
+        );
 
         Self {
             central_panel: central_panel::CentralPanel::new(std_net_type, &start_state),
@@ -124,6 +61,7 @@ impl Default for HopfiledNetsApp {
             recieve_from_net: main_recieve,
             net_stepping: false,
             saved_state: start_state,
+            n: 0,
         }
     }
 }
@@ -142,7 +80,20 @@ impl HopfiledNetsApp {
 
         Default::default()
     }
+    fn process_net_mss(&self) -> NetworkResponse {
+        let mess = self.recieve_from_net.try_recv();
+        // We check to see if the channel is still open and if there are new states to render.
+        if let Err(e) = mess {
+            if e == mpsc::TryRecvError::Disconnected {
+                panic!("Net thread closed unexpectedly");
+            } else {
+                return NetworkResponse::None;
+            }
+        }
+        mess.unwrap()
+    }
 
+    /*
     fn process_net_mss(&self) -> NetworkResponse {
         let mut last_value = self.recieve_from_net.try_recv();
         // We check to see if the channel is still open and if there are new states to render.
@@ -160,22 +111,24 @@ impl HopfiledNetsApp {
         // we stat skipping some, we don't want to skip indefinitely, because doing so
         // we risk having the main thread stuck stuck skipping stuff, and killing the responsiveness
         for _i in 0..1_000 {
-            if let Err(_) = new_value {
+            if new_value.is_err()  {
                 return last_value.unwrap();
             }
             last_value = self.recieve_from_net.try_recv();
-            if let Err(_) = last_value {
+            if last_value.is_err() {
                 return new_value.unwrap();
             }
             new_value = self.recieve_from_net.try_recv();
+            println!("Skip");
         }
 
         if let Ok(v) = new_value {
-            return v;
+            v
         } else {
-            return last_value.unwrap();
+            last_value.unwrap()
         }
     }
+    */
 }
 
 impl eframe::App for HopfiledNetsApp {
@@ -187,8 +140,6 @@ impl eframe::App for HopfiledNetsApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        //let Self { label, node_size_continer, central_panel } = self;
-
         //------------------------------Updating the UI components------------------------------
 
         // We check to see if the net has generated a new states only if we know that the net is genrating.
@@ -319,13 +270,9 @@ impl eframe::App for HopfiledNetsApp {
             self.central_panel.generate_ui(ui);
         });
 
-        if false {
-            egui::Window::new("Window").show(ctx, |ui| {
-                ui.label("Windows can be moved by dragging them.");
-                ui.label("They are automatically sized based on contents.");
-                ui.label("You can turn on resizing and scrolling if you like.");
-                ui.label("You would normally choose either panels OR windows.");
-            });
+        // If the net is stepping, we update the gui as soon as possible.
+        if self.net_stepping {
+            ctx.request_repaint();
         }
     }
 }

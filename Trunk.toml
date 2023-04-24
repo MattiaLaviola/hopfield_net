@@ -1,2 +1,4 @@
 [build]
 filehash = false
+
+TRUNK_BUILD_TARGET = "wasm32"

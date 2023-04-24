@@ -5,6 +5,8 @@ struct RenderConfig {
     node_on_color: egui::Color32,
     node_off_color: egui::Color32,
 }
+
+#[allow(clippy::too_many_arguments)]
 pub fn render_square_discrete<T: PartialOrd + std::ops::Neg<Output = T> + From<u32> + Copy>(
     ui: &mut egui::Ui,
     state: &mut Vec<T>,

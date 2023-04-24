@@ -9,7 +9,7 @@ fn main() -> eframe::Result<()> {
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "hopfield nets",
+        "hopfieldNets",
         native_options,
         Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc))),
     )
@@ -28,7 +28,7 @@ fn main() {
 
     wasm_bindgen_futures::spawn_local(async {
         eframe::start_web(
-            "hopfield nets", // hardcode it
+            "hopfieldNets", // hardcode it
             web_options,
             Box::new(|cc| Box::new(hopfield_nets::HopfiledNetsApp::new(cc))),
         )
