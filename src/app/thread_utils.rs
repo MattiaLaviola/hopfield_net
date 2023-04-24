@@ -30,6 +30,7 @@ pub fn handle_message(
     net: &mut dyn Net<f64>,
     command: NetworkCommand,
     is_stepping: &mut bool,
+    old_step_num: &mut usize,
     stepping_speed: &mut Duration,
 ) {
     match command {
@@ -39,16 +40,24 @@ pub fn handle_message(
 
         NetworkCommand::Go => {
             *is_stepping = true;
+            *old_step_num = net.get_steps();
         }
 
         NetworkCommand::Stop => {
             *is_stepping = false;
         }
 
-        NetworkCommand::SetState(vec) => net.set_state(&vec),
+        NetworkCommand::SetState(vec) => {
+            net.set_state(&vec);
+            *old_step_num = net.get_steps();
+        }
 
         NetworkCommand::SetSpeed(speed) => {
             *stepping_speed = Duration::from_millis(1000 / speed);
+        }
+
+        NetworkCommand::ResetWeights => {
+            net.reset_weights();
         }
 
         _ => println!("An unimplemented command was recieved"),

@@ -11,7 +11,9 @@ pub trait Net<T> {
 
     fn learn(&mut self, state: &[T]);
 
-    fn step(&mut self) -> Vec<T>;
+    fn step(&mut self) -> (bool, Vec<T>);
+
+    fn get_steps(&self) -> usize;
 
     fn set_state(&mut self, state: &[T]);
 
@@ -42,11 +44,36 @@ pub enum NetworkCommand {
     Stop,
     SetState(Vec<f64>),
     SetSpeed(u64),
+    ResetWeights,
     //This command contais the type of net to setup, and its starting state,stored in a tuple
     ChangeNetType((NetworkType, Vec<f64>)),
 }
 
 pub enum NetworkResponse {
     NewState(Vec<f64>),
-    Ack,
+    Stopped,
+    None,
+}
+
+impl NetworkResponse {
+    pub fn is_some(&self) -> bool {
+        match self {
+            NetworkResponse::None => false,
+            _ => true,
+        }
+    }
+
+    pub fn is_none(&self) -> bool {
+        match self {
+            NetworkResponse::None => true,
+            _ => false,
+        }
+    }
+
+    pub fn unwrap(self) -> Vec<f64> {
+        match self {
+            NetworkResponse::NewState(state) => state,
+            _ => panic!("Tried to unwrap a NetworkResponse::None"),
+        }
+    }
 }

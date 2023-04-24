@@ -13,6 +13,7 @@ pub struct SidePanel {
     forget_all: bool,
     start_stepping_pressed: bool,
     stop_stepping_pressed: bool,
+    is_stepping: bool,
     remember_speed: utilities::EditableValue<u64>,
 }
 
@@ -29,6 +30,7 @@ impl SidePanel {
             forget_all: false,
             start_stepping_pressed: false,
             stop_stepping_pressed: false,
+            is_stepping: false,
             remember_speed: utilities::EditableValue::new(10),
         }
     }
@@ -81,10 +83,16 @@ impl SidePanel {
         });
         ui.label("Memory recovery");
         ui.horizontal(|ui| {
-            let response = ui.button("Start");
+            let response = ui.selectable_label(self.is_stepping, "Start");
             self.start_stepping_pressed = response.clicked();
-            let response = ui.button("Stop");
+            let response = ui.selectable_label(!self.is_stepping, "Stop");
             self.stop_stepping_pressed = response.clicked();
+
+            if self.start_stepping_pressed {
+                self.is_stepping = true;
+            } else if self.stop_stepping_pressed {
+                self.is_stepping = false;
+            }
         });
         let response =
             ui.add(egui::Slider::new(&mut self.remember_speed.value, 1..=600).text("step/sec"));
@@ -186,5 +194,11 @@ impl SidePanel {
 
     pub fn load_saved_state(&self) -> bool {
         self.reset
+    }
+
+    // Setters
+
+    pub fn set_is_stepping(&mut self, is_stepping: bool) {
+        self.is_stepping = is_stepping;
     }
 }

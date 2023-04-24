@@ -22,7 +22,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
         self.hebbian_learning(state);
     }
 
-    fn step(&mut self) -> Vec<f64> {
+    fn step(&mut self) -> (bool, Vec<f64>) {
         //generat e random index from 0 to state.len()
         //let i = self.rng.gen_range(0..self.state.len());
         if self.nodes_yet_to_update.is_empty() {
@@ -32,9 +32,14 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
             );
         }
         let i = self.nodes_yet_to_update.pop().unwrap();
-        self.update_node(i);
         self.steps += 1;
-        self.state.clone()
+        let state_changed = self.update_node(i);
+
+        (state_changed, self.state.clone())
+    }
+
+    fn get_steps(&self) -> usize {
+        self.steps
     }
 
     fn set_state(&mut self, state: &[f64]) {
@@ -133,12 +138,17 @@ impl ClassicNetworkDiscrete {
 
     // This function summs the weight coming into a node, and then takes the sign of the sum
     // This is the standard upadate rule for the classic hopfield networks
-    fn update_node(&mut self, i: usize) {
+    fn update_node(&mut self, i: usize) -> bool {
         let mut sum = 0.0;
         for j in 0..self.weights[i].len() {
             sum += self.weights[i][j] * self.state[j];
         }
-        self.state[i] = if sum > 0.0 { 1.0 } else { -1.0 };
+        let new_val = if sum > 0.0 { 1.0 } else { -1.0 };
+        if new_val != self.state[i] {
+            self.state[i] = new_val;
+            return true;
+        }
+        return false;
     }
 
     // May be cool to we wich state are memorized in the random matrix
@@ -154,7 +164,7 @@ impl ClassicNetworkDiscrete {
     fn reset_nodes_to_update(container: &mut Vec<usize>, lenght: usize) {
         // If the containere isn't already empty, we empty it
         while !container.is_empty() {
-            container.pop();
+            container.clear();
         }
 
         // The container is populated with the indices of the nodes
@@ -166,10 +176,6 @@ impl ClassicNetworkDiscrete {
     }
 
     // Getters
-
-    pub fn get_steps(&self) -> usize {
-        self.steps
-    }
 }
 
 impl std::fmt::Display for ClassicNetworkDiscrete {
