@@ -172,7 +172,7 @@ impl SidePanel {
         self.node_dim.changed
     }
 
-    pub fn get_net_type(&self) -> hop_net::NetworkType {
+    pub fn get_selected_network(&self) -> hop_net::NetworkType {
         self.network.value
     }
 

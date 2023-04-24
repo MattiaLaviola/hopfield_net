@@ -2,14 +2,15 @@
 // there is probably a better way to do this, but at least for the moment this is good enough
 // the problems probably originates from me oranizing the fils in a java-like fashion
 pub mod classic_network;
-use crate::app::thread_utils;
+pub mod storkey_learning;
+
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
-use std::time::Duration;
+
+use rand::prelude::SliceRandom;
 use strum_macros::EnumIter;
 
+// ---------------------------------Start of Net trait---------------------------------
 pub trait Net<T> {
     fn get_state(&self) -> Vec<T>;
 
@@ -22,8 +23,11 @@ pub trait Net<T> {
     fn set_state(&mut self, state: &[T]);
 
     fn reset_weights(&mut self);
+
+    fn get_weights(&self) -> Vec<Vec<T>>;
 }
 
+// ---------------------------------Start of Network Type---------------------------------
 #[derive(EnumIter, Debug, PartialEq, Clone, Copy)]
 pub enum NetworkType {
     StorkeySquareDiscrete,
@@ -40,7 +44,8 @@ impl Display for NetworkType {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+// ---------------------------------Comuincation Enums---------------------------------
+#[derive(PartialEq, Clone)]
 pub enum NetworkCommand {
     None,
     Learn(Vec<f64>),
@@ -50,9 +55,27 @@ pub enum NetworkCommand {
     SetSpeed(u64),
     ResetWeights,
     //This command contais the type of net to setup, and its starting state,stored in a tuple
-    ChangeNetType((NetworkType, Vec<f64>)),
+    ChangeNetType(NetworkType),
 }
 
+impl std::fmt::Debug for NetworkCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NetworkCommand::None => write!(f, "None"),
+            NetworkCommand::Learn(state) => write!(f, "Learn(\n{})", state_vec_to_string(&state)),
+            NetworkCommand::Go => write!(f, "Go"),
+            NetworkCommand::Stop => write!(f, "Stop"),
+            NetworkCommand::SetState(state) => {
+                write!(f, "SetState(\n{})", state_vec_to_string(&state))
+            }
+            NetworkCommand::SetSpeed(speed) => write!(f, "SetSpeed({})", speed),
+            NetworkCommand::ResetWeights => write!(f, "ResetWeights"),
+            NetworkCommand::ChangeNetType(net_type) => write!(f, "ChangeNetType({:?})", net_type),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum NetworkResponse {
     NewState(Vec<f64>),
     Stopped,
@@ -76,6 +99,7 @@ impl NetworkResponse {
     }
 }
 
+// ---------------------------------Utility Functions---------------------------------
 pub fn state_vec_to_string(state: &[f64]) -> String {
     let mut result = String::new();
 
@@ -107,84 +131,16 @@ pub fn state_vec_to_string(state: &[f64]) -> String {
     result
 }
 
-pub fn start_net_thread(
-    net_type: NetworkType,
-    start_state: Vec<f64>,
-    step_speed: usize,
-    net_send: Sender<NetworkResponse>,
-    net_recieve: Receiver<NetworkCommand>,
-) -> std::thread::JoinHandle<()> {
-    std::thread::spawn(move || {
-        println!("Net thread up");
+fn reset_nodes_to_update(container: &mut Vec<usize>, lenght: usize) {
+    // If the containere isn't already empty, we empty it
+    while !container.is_empty() {
+        container.clear();
+    }
 
-        let std_err_fn = || {
-            panic!("Net thread closed unexpectedly");
-        };
+    // The container is populated with the indices of the nodes
+    for i in 0..lenght {
+        container.push(i);
+    }
 
-        // -----------------------------Setup-----------------------------
-        let mut net: Box<dyn Net<f64>> = match net_type {
-            NetworkType::SquareDiscrete => Box::new(classic_network::ClassicNetworkDiscrete::new(
-                start_state.len(),
-                Some(&start_state),
-            )),
-            _ => {
-                panic!("Not implemented");
-            }
-        };
-
-        let mut sleep_time = Duration::from_millis((1000.0 / step_speed as f64) as u64);
-        let mut is_stepping = false;
-        let mut old_step_num = 0;
-        let max_steps_without_change = net.get_state().len() + 1;
-
-        // -----------------------------Main loop-----------------------------
-        loop {
-            let mess = thread_utils::get_message(&net_recieve, is_stepping);
-
-            // get_message returns None only if the channel is closed, which would meann that the main thread stopped
-            if mess.is_none() {
-                println!("Net thread closed");
-                return;
-            }
-
-            let mess = mess.unwrap();
-            if mess != NetworkCommand::None {
-                thread_utils::handle_message(
-                    &mut net,
-                    mess,
-                    &mut is_stepping,
-                    &mut old_step_num,
-                    &mut sleep_time,
-                );
-            }
-
-            if is_stepping {
-                // The net computes the next state, and than returns a copy to be sent to the main thread, it also computes
-                // if the new state is equal to the old one.
-                let (state_changed, new_state) = net.step();
-
-                if state_changed {
-                    old_step_num = net.get_steps();
-                    if net_send.send(NetworkResponse::NewState(new_state)).is_err() {
-                        std_err_fn();
-                    }
-                } else {
-                    // We assume that is possible for the state to not change after a single step.
-                    // But if after x steps it still has not changed, we assue that we have reached an equilibrium state.
-                    let diff = net.get_steps() - old_step_num;
-                    if diff >= max_steps_without_change {
-                        println!("Stoppped stepping");
-                        is_stepping = false;
-                        if net_send.send(NetworkResponse::Stopped).is_err() {
-                            std_err_fn();
-                        }
-                    } else if net_send.send(NetworkResponse::None).is_err() {
-                        std_err_fn();
-                    }
-                }
-
-                std::thread::sleep(sleep_time);
-            }
-        }
-    })
+    container.shuffle(&mut rand::thread_rng());
 }

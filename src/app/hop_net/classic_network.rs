@@ -1,7 +1,5 @@
-use rand::prelude::SliceRandom;
-use rand::Rng;
-
 use crate::app::hop_net;
+use rand::Rng;
 pub struct ClassicNetworkDiscrete {
     pub state: Vec<f64>,
     pub rng: rand::rngs::ThreadRng,
@@ -26,10 +24,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
         //generat e random index from 0 to state.len()
         //let i = self.rng.gen_range(0..self.state.len());
         if self.nodes_yet_to_update.is_empty() {
-            ClassicNetworkDiscrete::reset_nodes_to_update(
-                &mut self.nodes_yet_to_update,
-                self.state.len(),
-            );
+            hop_net::reset_nodes_to_update(&mut self.nodes_yet_to_update, self.state.len());
         }
         let i = self.nodes_yet_to_update.pop().unwrap();
         self.steps += 1;
@@ -58,15 +53,16 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
         self.steps = 0;
 
         // We make sure that all nodes are marked as "to update"
-        ClassicNetworkDiscrete::reset_nodes_to_update(
-            &mut self.nodes_yet_to_update,
-            self.state.len(),
-        );
+        hop_net::reset_nodes_to_update(&mut self.nodes_yet_to_update, self.state.len());
     }
 
     fn reset_weights(&mut self) {
         self.weights = vec![vec![0.4; self.state.len()]; self.state.len()];
         self.number_of_learned_states = 0.0;
+    }
+
+    fn get_weights(&self) -> Vec<Vec<f64>> {
+        self.weights.clone()
     }
 }
 // In this case it gives a false allarm, the suggestion is not applicable
@@ -74,7 +70,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
 impl ClassicNetworkDiscrete {
     pub fn new(size: usize, start_state: Option<&Vec<f64>>) -> ClassicNetworkDiscrete {
         let state = if start_state.is_none() {
-            Vec::with_capacity(size)
+            vec![-1.0; size]
         } else {
             let start_s = start_state.unwrap();
             if start_s.len() != size {
@@ -84,7 +80,7 @@ impl ClassicNetworkDiscrete {
         };
 
         let mut nodes_to_update = Vec::with_capacity(size);
-        ClassicNetworkDiscrete::reset_nodes_to_update(&mut nodes_to_update, size);
+        hop_net::reset_nodes_to_update(&mut nodes_to_update, size);
 
         ClassicNetworkDiscrete {
             state,
@@ -150,30 +146,6 @@ impl ClassicNetworkDiscrete {
             return true;
         }
         false
-    }
-
-    // May be cool to we wich state are memorized in the random matrix
-    fn set_weights_to_random(&mut self) {
-        for i in 0..self.weights.len() {
-            for j in 0..self.weights[i].len() {
-                self.weights[i][j] = self.rng.gen_range(-5.0..=5.0);
-            }
-        }
-    }
-
-    // It is higly possible that this funcitin will be moved to net_utils
-    fn reset_nodes_to_update(container: &mut Vec<usize>, lenght: usize) {
-        // If the containere isn't already empty, we empty it
-        while !container.is_empty() {
-            container.clear();
-        }
-
-        // The container is populated with the indices of the nodes
-        for i in 0..lenght {
-            container.push(i);
-        }
-
-        container.shuffle(&mut rand::thread_rng());
     }
 
     // Getters

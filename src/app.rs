@@ -46,7 +46,7 @@ impl Default for HopfiledNetsApp {
 
         let side_panel = side_panel::SidePanel::new(std_net_type, state_size);
 
-        hop_net::start_net_thread(
+        thread_utils::start_net_thread(
             hop_net::NetworkType::SquareDiscrete,
             start_state.clone(),
             state_size,
@@ -80,6 +80,7 @@ impl HopfiledNetsApp {
 
         Default::default()
     }
+
     fn process_net_mss(&self) -> NetworkResponse {
         let mess = self.recieve_from_net.try_recv();
         // We check to see if the channel is still open and if there are new states to render.
@@ -93,6 +94,7 @@ impl HopfiledNetsApp {
         mess.unwrap()
     }
 
+    // TODO Test if this version of the function looks better
     /*
     fn process_net_mss(&self) -> NetworkResponse {
         let mut last_value = self.recieve_from_net.try_recv();
@@ -143,17 +145,16 @@ impl eframe::App for HopfiledNetsApp {
         //------------------------------Updating the UI components------------------------------
 
         // We check to see if the net has generated a new states only if we know that the net is genrating.
-        if self.net_stepping {
-            match self.process_net_mss() {
-                NetworkResponse::NewState(s) => {
-                    self.central_panel.set_net_state(s);
-                }
-                NetworkResponse::Stopped => {
-                    println!("Main thread: net stopped");
-                    self.side_panel.set_is_stepping(false);
-                }
-                _ => {}
+
+        match self.process_net_mss() {
+            NetworkResponse::NewState(s) => {
+                self.central_panel.set_net_state(s);
             }
+            NetworkResponse::Stopped => {
+                println!("Main thread: net stopped");
+                self.side_panel.set_is_stepping(false);
+            }
+            _ => {}
         }
 
         if self.side_panel.has_state_size_changed() {
@@ -189,11 +190,6 @@ impl eframe::App for HopfiledNetsApp {
                 panic!("The network is not running");
             }
             self.central_panel.set_net_state(self.saved_state.clone());
-        }
-
-        if self.side_panel.has_selected_network_changed() {
-            self.central_panel
-                .set_net_type(self.side_panel.get_net_type());
         }
 
         //If the user cahnged the nodes dimention through the slider, we update the gui.
@@ -234,7 +230,6 @@ impl eframe::App for HopfiledNetsApp {
         }
 
         // The current state is always the one being shown to the user, not the one of the net.
-
         if self.side_panel.learn_current_state() {
             let command = NetworkCommand::Learn(self.central_panel.get_net_state());
             if self.send_to_net.send(command).is_err() {
@@ -244,6 +239,18 @@ impl eframe::App for HopfiledNetsApp {
 
         if self.side_panel.forget_all() {
             if self.send_to_net.send(NetworkCommand::ResetWeights).is_err() {
+                panic!("The network is not running");
+            }
+        }
+
+        if self.side_panel.has_selected_network_changed() {
+            let new_type = self.side_panel.get_selected_network();
+            self.central_panel.set_net_type(new_type);
+            if self
+                .send_to_net
+                .send(NetworkCommand::ChangeNetType(new_type))
+                .is_err()
+            {
                 panic!("The network is not running");
             }
         }
