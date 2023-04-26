@@ -106,7 +106,7 @@ impl StorkeyLearningNetwork {
     fn storkey_learning(&mut self, state: &[f64]) {
         let old_weights = self.weights.clone();
         let len = self.state.len();
-        let c = self.c(state, &old_weights);
+        let _c = self.c(state, &old_weights);
 
         for i in 0..len {
             for j in 0..len {
@@ -118,7 +118,7 @@ impl StorkeyLearningNetwork {
                 //I have't been able to find mutch about this term
                 let noise_reduction = state[i] * self.h(j, i, &state, &old_weights)
                     + state[j] * self.h(i, j, &state, &old_weights);
-                let h_product =
+                let _h_product =
                     self.h(i, j, &state, &old_weights) * self.h(j, i, &state, &old_weights);
 
                 self.weights[i][j] = old_weights[i][j]

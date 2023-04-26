@@ -145,7 +145,6 @@ impl eframe::App for HopfiledNetsApp {
         //------------------------------Updating the UI components------------------------------
 
         // We check to see if the net has generated a new states only if we know that the net is genrating.
-
         match self.process_net_mss() {
             NetworkResponse::NewState(s) => {
                 self.central_panel.set_net_state(s);
@@ -256,6 +255,7 @@ impl eframe::App for HopfiledNetsApp {
         }
 
         //----------------------------------Rendering the UI----------------------------------
+        /* I have no use for this at the moment
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
@@ -267,7 +267,7 @@ impl eframe::App for HopfiledNetsApp {
                 });
             });
         });
-
+        */
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             self.side_panel.generate_ui(ui);
         });

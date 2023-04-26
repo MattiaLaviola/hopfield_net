@@ -44,7 +44,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
 
         if self.state.len() != state.len() {
             self.number_of_learned_states = 0.0;
-            self.weights = vec![vec![0.4; state.len()]; state.len()];
+            self.weights = vec![vec![0.0; state.len()]; state.len()];
             self.steps = 0;
         }
         self.state = state.to_vec();
@@ -57,7 +57,7 @@ impl hop_net::Net<f64> for ClassicNetworkDiscrete {
     }
 
     fn reset_weights(&mut self) {
-        self.weights = vec![vec![0.4; self.state.len()]; self.state.len()];
+        self.weights = vec![vec![0.0; self.state.len()]; self.state.len()];
         self.number_of_learned_states = 0.0;
     }
 
@@ -85,7 +85,7 @@ impl ClassicNetworkDiscrete {
         ClassicNetworkDiscrete {
             state,
             rng: rand::thread_rng(),
-            weights: vec![vec![0.4; size]; size],
+            weights: vec![vec![0.0; size]; size],
             steps: 0,
             number_of_learned_states: 0.0,
             nodes_yet_to_update: nodes_to_update,
@@ -109,25 +109,13 @@ impl ClassicNetworkDiscrete {
     }
 
     fn hebbian_learning(&mut self, state_to_learn: &[f64]) {
-        if self.number_of_learned_states == 1.0 {
-            for i in 0..self.weights.len() {
-                for j in 0..self.weights[i].len() {
-                    if i == j {
-                        self.weights[i][j] = 0.0;
-                    } else {
-                        self.weights[i][j] = state_to_learn[i] * state_to_learn[j];
-                    }
-                }
-            }
-        } else {
-            for i in 0..self.weights.len() {
-                for j in 0..self.weights[i].len() {
-                    if i == j {
-                        self.weights[i][j] = 0.0;
-                    } else {
-                        // self.weights[i][j] +=(1.0 / self.number_of_learned_states) *(state_to_learn[i] * state_to_learn[j]) + ((self.number_of_learned_states - 1.0) /self.number_of_learned_states) self.weights[i][j];
-                        self.weights[i][j] += state_to_learn[i] * state_to_learn[j];
-                    }
+        for i in 0..self.weights.len() {
+            for j in 0..self.weights[i].len() {
+                if i == j {
+                    self.weights[i][j] = 0.0;
+                } else {
+                    // self.weights[i][j] +=(1.0 / self.number_of_learned_states) *(state_to_learn[i] * state_to_learn[j]) + ((self.number_of_learned_states - 1.0) /self.number_of_learned_states) self.weights[i][j];
+                    self.weights[i][j] += state_to_learn[i] * state_to_learn[j];
                 }
             }
         }
@@ -153,33 +141,6 @@ impl ClassicNetworkDiscrete {
 
 impl std::fmt::Display for ClassicNetworkDiscrete {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut state = String::new();
-
-        // Extract the closest integer square root
-        let sqrt = (self.state.len() as f64).sqrt().round() as usize;
-
-        //chesk if the lenght of the state is the square of a number
-        if sqrt.pow(2) == self.state.len() {
-            for i in 0..sqrt {
-                for j in 0..sqrt {
-                    if self.state[i * sqrt + j] == 1.0 {
-                        state.push('◼');
-                    } else {
-                        state.push('◻');
-                    }
-                }
-                state.push('\n');
-            }
-        } else {
-            for i in 0..self.state.len() {
-                if self.state[i] == 1.0 {
-                    state.push('◼');
-                } else {
-                    state.push('◻');
-                }
-            }
-        }
-
-        write!(f, "state:\n{}", state)
+        write!(f, "state:\n{}", hop_net::state_vec_to_string(&self.state))
     }
 }
