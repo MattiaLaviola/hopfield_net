@@ -6,13 +6,13 @@ I don't know, i thougt that the hopfield networks were cool, and I wanted to lea
 ---
 
 ### What's inside
-![Gui screenshot](https://github.com/MattiaLaviola/hopfield_net/blob/master/reade_me_stuff/Screenshot.JPG?raw=true)
+
 Insire this repository there is an implementation of the original version of the Hopfield network (that i indicatd as HebbianSquareDiscrete), and a 
 version that uses the strokey leatning rule.
 
 In future I'd also like to implement the modern version of the netwotk, an the modern continuous network desrcibed in [Hopfield Networks is All You Need](https://arxiv.org/abs/2008.02217).
 
-
+![Gui screenshot](https://github.com/MattiaLaviola/hopfield_net/blob/master/reade_me_stuff/Screenshot.JPG?raw=true)
 ---
 
 ### How to run 
